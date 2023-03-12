@@ -26,20 +26,37 @@ async function run() {
          .db("doctorsPortal")
          .collection("bookings");
 
+      // Use Aggregate to query multiple collection and then merge data
       app.get("/appointmentOptions", async (req, res) => {
+         const date = req.query.date;
          const query = {};
          const options = await appointmentOptionCollection
             .find(query)
             .toArray();
+
+
+            // get the booking of the provided date
+         const bookingQuery = { appointmentDate: date };
+         const alreadyBooked = await bookingsCollection
+            .find(bookingQuery)
+            .toArray();
+
+            options.forEach(option =>{
+               const optionBooked = alreadyBooked.filter(book => book.treatment === option.name);
+               const bookedSlots = optionBooked.map( book => book.slot);
+               const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot));
+               // (slot => bookedSlots.includes(slot)) it's mean bookedSlots এর মধ্যে যেই গুলা আছে সেইগুলা filter করে দিবে। আর (slot => !bookedSlots.includes(slot) এটা হচ্ছে যেই গুলা নাই সেই গুলা দিবে।
+
+               option.slots = remainingSlots;
+            });
          res.send(options);
       });
 
-      app.post('/bookings', async(req, res) =>{
-        const booking =req.body
-        console.log(booking);
-        const result = await bookingsCollection.insertOne(booking);
-        res.send(result);
-      })
+      app.post("/bookings", async (req, res) => {
+         const booking = req.body;
+         const result = await bookingsCollection.insertOne(booking);
+         res.send(result);
+      });
       /***
        * API Naming Convention
        *app.get('/bookings')
