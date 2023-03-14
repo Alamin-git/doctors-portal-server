@@ -34,35 +34,46 @@ async function run() {
             .find(query)
             .toArray();
 
-
-            // get the booking of the provided date
+         // get the booking of the provided date
          const bookingQuery = { appointmentDate: date };
          const alreadyBooked = await bookingsCollection
             .find(bookingQuery)
             .toArray();
 
-            options.forEach(option =>{
-               const optionBooked = alreadyBooked.filter(book => book.treatment === option.name);
-               const bookedSlots = optionBooked.map( book => book.slot);
-               const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot));
-               // (slot => bookedSlots.includes(slot)) it's mean bookedSlots এর মধ্যে যেই গুলা আছে সেইগুলা filter করে দিবে। আর (slot => !bookedSlots.includes(slot) এটা হচ্ছে যেই গুলা নাই সেই গুলা দিবে।
+         options.forEach((option) => {
+            const optionBooked = alreadyBooked.filter(
+               (book) => book.treatment === option.name
+            );
+            const bookedSlots = optionBooked.map((book) => book.slot);
+            const remainingSlots = option.slots.filter(
+               (slot) => !bookedSlots.includes(slot)
+            );
+            // (slot => bookedSlots.includes(slot)) it's mean bookedSlots এর মধ্যে যেই গুলা আছে সেইগুলা filter করে দিবে। আর (slot => !bookedSlots.includes(slot) এটা হচ্ছে যেই গুলা নাই সেই গুলা দিবে।
 
-               option.slots = remainingSlots;
-            });
+            option.slots = remainingSlots;
+         });
          res.send(options);
+      });
+
+      app.get("/bookings", async (req, res) => {
+         const email = req.query.email;
+         console.log(email);
+         const query = { email: email };
+         const bookings = await bookingsCollection.find(query).toArray();
+         res.send(bookings);
       });
 
       app.post("/bookings", async (req, res) => {
          const booking = req.body;
-         const query ={
+         const query = {
             appointmentDate: booking.appointmentDate,
             email: booking.email,
             treatment: booking.treatment,
-         }
+         };
          const alreadyBooked = await bookingsCollection.find(query).toArray();
-         if (alreadyBooked.length){
+         if (alreadyBooked.length) {
             const message = `You already have a booking on ${booking.appointmentDate}`;
-            return res.send({acknowledged: false, message});
+            return res.send({ acknowledged: false, message });
          }
          const result = await bookingsCollection.insertOne(booking);
          res.send(result);
