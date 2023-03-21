@@ -3,7 +3,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
 
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -19,12 +19,19 @@ const client = new MongoClient(uri, {
    serverApi: ServerApiVersion.v1,
 });
 
-function verifyJWT(req, res, next){
-   const authHeader= req.headers.authorization;
-   if(!authHeader){
-      return res.send(401).send('unauthorized access')
+function verifyJWT(req, res, next) {
+   const authHeader = req.headers.authorization;
+   if (!authHeader) {
+      return res.status(401).send("unauthorized access");
    }
-   const token= authHeader.split(' ')[1];
+   const token = authHeader.split(" ")[1];
+   jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+      if(err){
+         return res.status(403).send({message: 'forbidden access'})
+      }
+      req.decoded = decoded;
+      next();
+   });
 }
 
 async function run() {
@@ -35,9 +42,7 @@ async function run() {
       const bookingsCollection = client
          .db("doctorsPortal")
          .collection("bookings");
-      const usersCollection = client
-         .db("doctorsPortal")
-         .collection("users");
+      const usersCollection = client.db("doctorsPortal").collection("users");
 
       // Use Aggregate to query multiple collection and then merge data
       app.get("/appointmentOptions", async (req, res) => {
@@ -68,8 +73,12 @@ async function run() {
          res.send(options);
       });
 
-      app.get("/bookings",verifyJWT, async (req, res) => {
+      app.get("/bookings", verifyJWT, async (req, res) => {
          const email = req.query.email;
+         const decodedEmail = req.decoded.email;
+         if(email !== decodedEmail){
+            return res.status(403).send({message: 'forbidden access'})
+         }
          const query = { email: email };
          const bookings = await bookingsCollection.find(query).toArray();
          res.send(bookings);
@@ -98,25 +107,25 @@ async function run() {
        * app.patch('/bookings:id')
        * app.delete('/bookings:id')
        */
-      app.post('/users', async(req, res) =>{
-          const user =req.body;
-          const result = await usersCollection.insertOne(user);
-          res.send(result);
+      app.post("/users", async (req, res) => {
+         const user = req.body;
+         const result = await usersCollection.insertOne(user);
+         res.send(result);
       });
 
-
-      app.get('/jwt', async(req,res)=>{
-         const email =req.query.email;
-         const query = {email:email};
+      app.get("/jwt", async (req, res) => {
+         const email = req.query.email;
+         const query = { email: email };
          const user = await usersCollection.findOne(query);
-         if(user){
-            const token = jwt.sign({email}, process.env.ACCESS_TOKEN, {expiresIn: '1h'})
-            return res.send({accessToken : token})
+         if (user) {
+            const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+               expiresIn: "1h",
+            });
+            return res.send({ accessToken: token });
          }
          console.log(user);
-         res.status(403).send({accessToken: ''})
-
-      })
+         res.status(403).send({ accessToken: "" });
+      });
    } finally {
    }
 }
