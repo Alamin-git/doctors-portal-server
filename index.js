@@ -26,8 +26,8 @@ function verifyJWT(req, res, next) {
    }
    const token = authHeader.split(" ")[1];
    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-      if(err){
-         return res.status(403).send({message: 'forbidden access'})
+      if (err) {
+         return res.status(403).send({ message: "forbidden access" });
       }
       req.decoded = decoded;
       next();
@@ -76,8 +76,8 @@ async function run() {
       app.get("/bookings", verifyJWT, async (req, res) => {
          const email = req.query.email;
          const decodedEmail = req.decoded.email;
-         if(email !== decodedEmail){
-            return res.status(403).send({message: 'forbidden access'})
+         if (email !== decodedEmail) {
+            return res.status(403).send({ message: "forbidden access" });
          }
          const query = { email: email };
          const bookings = await bookingsCollection.find(query).toArray();
@@ -107,6 +107,13 @@ async function run() {
        * app.patch('/bookings:id')
        * app.delete('/bookings:id')
        */
+
+      app.get("/users", async (req, res) => {
+         const query = {};
+         const users = await usersCollection.find(query).toArray();
+         res.send(users);
+      });
+
       app.post("/users", async (req, res) => {
          const user = req.body;
          const result = await usersCollection.insertOne(user);
