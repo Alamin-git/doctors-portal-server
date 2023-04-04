@@ -134,16 +134,20 @@ async function run() {
          res.status(403).send({ accessToken: "" });
       });
 
+      app.get("/users/admin/:email", async (req, res) => {
+         const email = req.params.email;
+         const query = { email };
+         const user = await usersCollection.findOne(query);
+         res.send({ isAdmin: user?.role === "admin" });
+      });
+
       app.put("/users/admin/:id", verifyJWT, async (req, res) => {
-
          const decodedEmail = req.decoded.email;
-         const query = {email: decodedEmail};
-         const user = await usersCollection.findOne(query)
-         if(user?.role !== 'admin'){
-            return res.status(403).send({message: 'forbidden access'})
-         }
-
-
+         const query = { email: decodedEmail };
+         const user = await usersCollection.findOne(query);
+         if (user?.role !== "admin") {
+            return res.status(403).send({ message: "forbidden access" });
+         } //this part for admin check
          const id = req.params.id;
          const filter = { _id: new ObjectId(id) };
          const options = { upsert: true };
